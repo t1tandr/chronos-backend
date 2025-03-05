@@ -14,8 +14,90 @@ datasource db {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  email    String @unique
-  name     String
-  password String
+  id             String           @id @default(uuid())
+  email          String           @unique
+  name           String
+  password       String
+  calendars      Calendar[]
+  invites        Invite[]
+  CalendarMember CalendarMember[]
+  Event          Event[]
+
+  @@map("users")
+}
+
+model Calendar {
+  id          String           @id @default(uuid())
+  name        String
+  slug        String           @unique
+  description String?
+  color       String           @default("blue")
+  ownerId     String           @map("owner_id")
+  owner       User             @relation(fields: [ownerId], references: [id])
+  events      Event[]
+  members     CalendarMember[]
+  isPublic    Boolean          @default(false) @map("is_public")
+  Invite      Invite[]
+
+  @@index([slug])
+  @@map("calendars")
+}
+
+model CalendarMember {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  calendarId String   @map("calendar_id")
+  user       User     @relation(fields: [userId], references: [id])
+  calendar   Calendar @relation(fields: [calendarId], references: [id])
+  role       Role     @default(VIEWER)
+
+  @@map("calendar_members")
+}
+
+enum Role {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+model Event {
+  id          String         @id @default(uuid())
+  name        String
+  description String?
+  date        DateTime
+  duration    Int
+  category    EventCategory?
+  calendarId  String         @map("calendar_id")
+  calendar    Calendar       @relation(fields: [calendarId], references: [id])
+  creatorId   String         @map("creator_id")
+  creator     User           @relation(fields: [creatorId], references: [id])
+  color       String         @default("blue")
+
+  @@map("events")
+}
+
+enum EventCategory {
+  ARRANGEMENT
+  REMINDER
+  TASK
+}
+
+model Invite {
+  id         String       @id @default(uuid())
+  calendarId String       @map("calendar_id")
+  calendar   Calendar     @relation(fields: [calendarId], references: [id])
+  email      String
+  role       Role         @default(VIEWER)
+  status     InviteStatus @default(PENDING)
+
+  User   User?   @relation(fields: [userId], references: [id])
+  userId String?
+
+  @@map("invites")
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
