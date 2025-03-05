@@ -16,7 +16,7 @@ export class AuthService {
     private jwt: JwtService
   ) {}
 
-  private issueTokens(userId: number) {
+  private issueTokens(userId: string) {
     const data = { id: userId };
 
     const accessToken = this.jwt.sign(data, {

@@ -27,7 +27,7 @@ export class UserService {
     });
   }
 
-  async findById(id: number) {
+  async findById(id: string) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userData } = await this.prisma.user.findUnique({
       where: {
