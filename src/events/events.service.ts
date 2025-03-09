@@ -7,10 +7,15 @@ import { PrismaService } from 'src/prisma.service';
 import { Role } from '@prisma/client';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class EventsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @InjectQueue('emailQueue') private emailQueue: Queue
+  ) {}
 
   async createEvent(userId: string, dto: CreateEventDto) {
     await this.checkUserPermission(userId, dto.calendarId);
@@ -22,7 +27,29 @@ export class EventsService {
       }
     });
 
-    // this.scheduleEmailReminder(event);
+    const participants = await this.prisma.calendarMember.findMany({
+      where: { calendarId: dto.calendarId },
+      include: {
+        user: true
+      }
+    });
+
+    const emails = participants.map((p) => p.user.email);
+    const reminderTime = new Date(event.date.getTime() - 15 * 60000);
+
+    await this.emailQueue.add(
+      'sendEmail',
+      {
+        to: emails,
+        subject: `Reminder: ${event.name} starts soon`,
+        template: 'event-reminder',
+        context: {
+          eventName: event.name,
+          eventTime: this.formatDate(event.date)
+        }
+      },
+      { delay: reminderTime.getTime() - Date.now() }
+    );
 
     return event;
   }
@@ -82,38 +109,11 @@ export class EventsService {
     }
   }
 
-  // private async scheduleEmailReminder(event: any) {
-  //   const { date, calendarId } = event;
+  private formatDate(date: Date) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
 
-  //   const participants = await this.prisma.calendarMember.findMany({
-  //     where: { calendarId },
-  //     include: { user: true }
-  //   });
-
-  //   const emails = participants.map((p) => p.user.email);
-  //   const reminderTime = new Date(date.getTime() - 15 * 60000); // за 15 минут до события
-
-  //   setTimeout(() => {
-  //     this.sendEmailNotification(emails, event);
-  //   }, reminderTime.getTime() - Date.now());
-  // }
-
-  // private async sendEmailNotification(emails: string[], event: any) {
-  //   const transporter = nodemailer.createTransport({
-  //     service: 'Gmail',
-  //     auth: {
-  //       user: process.env.EMAIL_USER,
-  //       pass: process.env.EMAIL_PASS
-  //     }
-  //   });
-
-  //   const mailOptions = {
-  //     from: process.env.EMAIL_USER,
-  //     to: emails.join(','),
-  //     subject: `Reminder: ${event.name} starts soon`,
-  //     text: `Your event "${event.name}" starts in 15 minutes.`
-  //   };
-
-  //   await transporter.sendMail(mailOptions);
-  // }
+    return `${day}.${month}.${year}`;
+  }
 }

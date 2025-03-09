@@ -7,6 +7,7 @@ import { UserModule } from 'src/user/user.module';
 import { JwtStrategy } from './jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { getJwtConfig } from 'src/config/jwt.config';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -16,7 +17,8 @@ import { getJwtConfig } from 'src/config/jwt.config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: getJwtConfig
-    })
+    }),
+    BullModule.registerQueue({ name: 'emailQueue' })
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, JwtStrategy]

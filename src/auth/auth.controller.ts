@@ -28,6 +28,7 @@ export class AuthController {
   ) {
     const { refreshToken, ...response } = await this.authService.register(dto);
     this.authService.addRefreshTokenToResponse(res, refreshToken);
+
     return response;
   }
 

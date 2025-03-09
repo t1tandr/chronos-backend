@@ -5,6 +5,8 @@ import { UserService } from 'src/user/user.service';
 import { AuthDto } from './dto/auth.dto';
 import { RegisterDto } from './dto/register.dto';
 import { Response } from 'express';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class AuthService {
@@ -13,7 +15,8 @@ export class AuthService {
 
   constructor(
     private userService: UserService,
-    private jwt: JwtService
+    private jwt: JwtService,
+    @InjectQueue('emailQueue') private emailQueue: Queue
   ) {}
 
   private issueTokens(userId: string) {
@@ -66,6 +69,15 @@ export class AuthService {
 
     const tokens = this.issueTokens(user.id);
 
+    await this.emailQueue.add('sendEmail', {
+      to: user.email,
+      subject: 'You have been invited to a calendar',
+      template: 'welcome',
+      context: {
+        name: user.name
+      }
+    });
+
     return {
       user,
       ...tokens
@@ -112,20 +124,4 @@ export class AuthService {
       ...tokens
     };
   }
-
-  // async refreshToken(user: any) {
-  //   const payload = { email: user.email, sub: user.id };
-  //   return {
-  //     backendTokens: {
-  //       accessToken: await this.jwtService.signAsync(payload, {
-  //         expiresIn: '1h',
-  //         secret: process.env.JWT_SECRET
-  //       }),
-  //       refreshToken: await this.jwtService.signAsync(payload, {
-  //         expiresIn: '7d',
-  //         secret: process.env.JWT_REFRESH_TOKEN
-  //       })
-  //     }
-  //   };
-  // }
 }
