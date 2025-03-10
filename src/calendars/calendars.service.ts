@@ -3,10 +3,62 @@ import { Injectable } from '@nestjs/common';
 import { CreateCalendarDto } from './dto/create-calendar.dto';
 import { PrismaService } from 'src/prisma.service';
 import slugify from 'slugify';
+import { google } from 'googleapis';
 
 @Injectable()
 export class CalendarsService {
-  constructor(private prisma: PrismaService) {}
+  private calendar;
+
+  constructor(private prisma: PrismaService) {
+    const auth = new google.auth.GoogleAuth({
+      keyFile: 'src/config/calendar-credentials.json',
+      scopes: ['https://www.googleapis.com/auth/calendar']
+    });
+
+    this.calendar = google.calendar({ version: 'v3', auth });
+  }
+
+  async getHolidaysWithGoogleCalendar(countryCode: string, year: number) {
+    try {
+      // Map of country codes to their specific calendar IDs
+      const calendarMapping = {
+        UA: 'uk.ukrainian#holiday@group.v.calendar.google.com',
+        US: 'en.usa#holiday@group.v.calendar.google.com',
+        GB: 'en.uk#holiday@group.v.calendar.google.com',
+        PL: 'pl.polish#holiday@group.v.calendar.google.com'
+      };
+
+      // Get calendar ID from mapping or construct a default one
+      const calendarId =
+        calendarMapping[countryCode.toUpperCase()] ||
+        `en.${countryCode.toLowerCase()}#holiday@group.v.calendar.google.com`;
+
+      console.log(
+        `Attempting to fetch holidays with Calendar ID: ${calendarId}`
+      );
+
+      const res = await this.calendar.events.list({
+        calendarId,
+        timeMin: `${year}-01-01T00:00:00Z`,
+        timeMax: `${year}-12-31T23:59:59Z`,
+        singleEvents: true,
+        orderBy: 'startTime'
+      });
+
+      if (!res.data.items) {
+        console.log(`No holidays found for country: ${countryCode}`);
+        return [];
+      }
+
+      console.log(`Fetched ${res.data.items.length} holidays`);
+
+      return res.data.items;
+    } catch (error) {
+      console.error('Error fetching holidays:', error.message);
+      // Return empty array instead of throwing error
+      return [];
+    }
+  }
 
   async createCalendar(userId: string, dto: CreateCalendarDto) {
     let slug = slugify(dto.name, { lower: true, strict: true });

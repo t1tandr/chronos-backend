@@ -4,9 +4,11 @@ import { compare } from 'bcrypt';
 import { UserService } from 'src/user/user.service';
 import { AuthDto } from './dto/auth.dto';
 import { RegisterDto } from './dto/register.dto';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { CalendarsService } from 'src/calendars/calendars.service';
+import { EventsService } from 'src/events/events.service';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +18,8 @@ export class AuthService {
   constructor(
     private userService: UserService,
     private jwt: JwtService,
+    private calendarService: CalendarsService,
+    private eventService: EventsService,
     @InjectQueue('emailQueue') private emailQueue: Queue
   ) {}
 
@@ -57,7 +61,7 @@ export class AuthService {
     };
   }
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, req: Request) {
     const existingUser = await this.userService.findByEmail(dto.email);
 
     if (existingUser) {
@@ -77,6 +81,31 @@ export class AuthService {
         name: user.name
       }
     });
+
+    if (!dto.country) {
+      dto.country = await this.userService.getCountryByIP(req.ip);
+    }
+
+    const holidays = await this.calendarService.getHolidaysWithGoogleCalendar(
+      dto.country,
+      new Date().getFullYear()
+    );
+
+    const calendar = await this.calendarService.createCalendar(user.id, {
+      name: 'Personal',
+      color: '#000000'
+    });
+
+    for (const holiday of holidays) {
+      await this.eventService.createEvent(user.id, {
+        name: holiday.summary,
+        date: holiday.start.dateTime
+          ? new Date(holiday.start.dateTime)
+          : new Date(holiday.start.date + 'T00:00:00'),
+        duration: 24,
+        calendarId: calendar.id
+      });
+    }
 
     return {
       user,

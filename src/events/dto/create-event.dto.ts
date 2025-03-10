@@ -1,11 +1,6 @@
-import {
-  IsString,
-  IsOptional,
-  IsDateString,
-  IsEnum,
-  IsInt
-} from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsInt, IsDate } from 'class-validator';
 import { EventCategory } from '@prisma/client';
+import { Type } from 'class-transformer';
 
 export class CreateEventDto {
   @IsString()
@@ -15,8 +10,9 @@ export class CreateEventDto {
   @IsString()
   description?: string;
 
-  @IsDateString()
-  date: string;
+  @IsDate()
+  @Type(() => Date)
+  date: Date;
 
   @IsInt()
   duration: number;

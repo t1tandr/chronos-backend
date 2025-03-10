@@ -3,10 +3,15 @@ import { PrismaService } from 'src/prisma.service';
 import { hash } from 'bcrypt';
 import { RegisterDto } from 'src/auth/dto/register.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { HttpService } from '@nestjs/axios';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly httpService: HttpService
+  ) {}
 
   async createUser(dto: RegisterDto) {
     const user = {
@@ -64,5 +69,31 @@ export class UserService {
     return this.prisma.user.delete({
       where: { id }
     });
+  }
+
+  async getCountryByIP(ip: string): Promise<string | null> {
+    try {
+      const cleanIP = ip.replace('::ffff:', '');
+
+      if (cleanIP === '127.0.0.1' || cleanIP === 'localhost') {
+        return 'UA';
+      }
+
+      const url = `https://ipapi.co/${cleanIP}/json/`;
+      const response = await lastValueFrom(this.httpService.get(url));
+
+      if (response.data.error || response.data.reserved) {
+        console.log(
+          'IP lookup error:',
+          response.data.reason || 'Unknown error'
+        );
+        return null;
+      }
+
+      return response.data?.country_code || null;
+    } catch (e) {
+      console.log('Error getting country for IP:', ip, e?.message);
+      return null;
+    }
   }
 }

@@ -24,9 +24,13 @@ export class AuthController {
   @Post('register')
   async registerUser(
     @Body() dto: RegisterDto,
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) res: Response,
+    @Req() req: Request
   ) {
-    const { refreshToken, ...response } = await this.authService.register(dto);
+    const { refreshToken, ...response } = await this.authService.register(
+      dto,
+      req
+    );
     this.authService.addRefreshTokenToResponse(res, refreshToken);
 
     return response;

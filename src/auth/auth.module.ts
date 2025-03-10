@@ -8,9 +8,13 @@ import { JwtStrategy } from './jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { getJwtConfig } from 'src/config/jwt.config';
 import { BullModule } from '@nestjs/bullmq';
+import { CalendarsModule } from 'src/calendars/calendars.module';
+import { EventsModule } from 'src/events/events.module';
 
 @Module({
   imports: [
+    CalendarsModule,
+    EventsModule,
     UserModule,
     ConfigModule,
     JwtModule.registerAsync({

@@ -18,6 +18,7 @@ model User {
   email          String           @unique
   name           String
   password       String
+  country        String?
   calendars      Calendar[]
   invites        Invite[]
   CalendarMember CalendarMember[]
