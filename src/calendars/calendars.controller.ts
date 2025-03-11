@@ -27,13 +27,15 @@ export class CalendarsController {
     return this.calendarsService.updateCalendar(userId, slug, dto);
   }
 
-  @Get(':id')
+  @Get('/user/:userId')
   @UseGuards(JwtAuthGuard)
-  async findUserCalendars(
-    @CurrentUser('id') userId: string,
-    @Param('id') profileId: string
+  async findCalendarBySlug(
+    @Param('userId') userIdUrl: string,
+    @CurrentUser('id') userId: string
   ) {
-    const isOwn = userId === profileId;
-    return this.calendarsService.findUserCalendars(profileId, isOwn);
+    if (userIdUrl !== userId) {
+      return this.calendarsService.getPublicCalendarsByUserId(userIdUrl);
+    }
+    return this.calendarsService.getOwnCalendars(userId);
   }
 }

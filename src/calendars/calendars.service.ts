@@ -20,7 +20,6 @@ export class CalendarsService {
 
   async getHolidaysWithGoogleCalendar(countryCode: string, year: number) {
     try {
-      // Map of country codes to their specific calendar IDs
       const calendarMapping = {
         UA: 'uk.ukrainian#holiday@group.v.calendar.google.com',
         US: 'en.usa#holiday@group.v.calendar.google.com',
@@ -28,7 +27,6 @@ export class CalendarsService {
         PL: 'pl.polish#holiday@group.v.calendar.google.com'
       };
 
-      // Get calendar ID from mapping or construct a default one
       const calendarId =
         calendarMapping[countryCode.toUpperCase()] ||
         `en.${countryCode.toLowerCase()}#holiday@group.v.calendar.google.com`;
@@ -55,7 +53,6 @@ export class CalendarsService {
       return res.data.items;
     } catch (error) {
       console.error('Error fetching holidays:', error.message);
-      // Return empty array instead of throwing error
       return [];
     }
   }
@@ -84,6 +81,30 @@ export class CalendarsService {
       }
     });
     return { id, ...rest };
+  }
+
+  async getOwnCalendars(userId: string) {
+    return this.prisma.calendar.findMany({
+      where: { ownerId: userId }
+    });
+  }
+
+  async getPublicCalendarsByUserId(userId: string) {
+    return this.prisma.calendar.findMany({
+      where: {
+        ownerId: userId,
+        isPublic: true
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
   }
 
   async updateCalendar(userId: string, slug: string, dto: CreateCalendarDto) {
@@ -128,23 +149,7 @@ export class CalendarsService {
     return calendar;
   }
 
-  async findUserCalendars(userId: string, ownPage: boolean) {
-    if (ownPage) {
-      return this.prisma.calendarMember.findMany({
-        where: {
-          userId
-        },
-        select: {
-          calendar: true
-        }
-      });
-    } else {
-      return this.prisma.calendar.findMany({
-        where: {
-          ownerId: userId,
-          isPublic: true
-        }
-      });
-    }
+  async getCalendarById(id: string) {
+    return this.prisma.calendar.findUnique({ where: { id } });
   }
 }
