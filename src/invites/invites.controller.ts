@@ -1,18 +1,29 @@
-import { Controller, Post, Body, Param, Get, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  Get,
+  Delete,
+  UseGuards
+} from '@nestjs/common';
 import { InvitesService } from './invites.service';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { CurrentUser } from 'src/auth/decorators/user.decorator';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 
 @Controller('invites')
 export class InvitesController {
   constructor(private invitesService: InvitesService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   async createInvite(@Body() dto: CreateInviteDto) {
     return this.invitesService.createInvite(dto);
   }
 
   @Post(':id/accept')
+  @UseGuards(JwtAuthGuard)
   async acceptInvite(
     @Param('id') id: string,
     @CurrentUser('id') userId: string
@@ -21,18 +32,27 @@ export class InvitesController {
   }
 
   @Post(':id/reject')
-  async rejectInvite(@Param('id') id: string) {
-    return this.invitesService.rejectInvite(id);
+  @UseGuards(JwtAuthGuard)
+  async rejectInvite(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string
+  ) {
+    return this.invitesService.rejectInvite(id, userId);
   }
 
   @Get('user/:userId')
+  @UseGuards(JwtAuthGuard)
   async getInvitesForUser(@CurrentUser('id') userId: string) {
     return this.invitesService.getInvitesForUser(userId);
   }
 
   @Get('calendar/:calendarId')
-  async getInvitesForCalendar(@Param('calendarId') calendarId: string) {
-    return this.invitesService.getInvitesForCalendar(calendarId);
+  @UseGuards(JwtAuthGuard)
+  async getInvitesForCalendar(
+    @Param('calendarId') calendarId: string,
+    userId: string
+  ) {
+    return this.invitesService.getInvitesForCalendar(calendarId, userId);
   }
 
   @Delete(':id')

@@ -56,6 +56,10 @@ export class InvitesService {
   async acceptInvite(id: string, userId: string) {
     const invite = await this.prisma.invite.findUnique({ where: { id } });
 
+    if (invite.userId !== userId) {
+      throw new Error('You do not have permission to accept this invite');
+    }
+
     if (!invite) {
       throw new Error('Invite not found');
     }
@@ -70,7 +74,13 @@ export class InvitesService {
     return this.prisma.invite.delete({ where: { id } });
   }
 
-  async rejectInvite(id: string) {
+  async rejectInvite(id: string, userId: string) {
+    const invite = await this.prisma.invite.findUnique({ where: { id } });
+
+    if (invite.userId !== userId) {
+      throw new Error('You do not have permission to reject this invite');
+    }
+
     return this.prisma.invite.update({
       where: { id },
       data: {
@@ -96,7 +106,22 @@ export class InvitesService {
     return this.prisma.invite.delete({ where: { id } });
   }
 
-  async getInvitesForCalendar(calendarId: string) {
+  async getInvitesForCalendar(calendarId: string, userId: string) {
+    const member = await this.prisma.calendarMember.findFirst({
+      where: {
+        calendarId,
+        userId
+      }
+    });
+    if (!member) {
+      throw new Error('You are not a member of this calendar');
+    }
+
+    if (member.role !== 'OWNER') {
+      throw new Error(
+        'You do not have permission to view invites for this calendar'
+      );
+    }
     return this.prisma.invite.findMany({
       where: {
         calendarId
