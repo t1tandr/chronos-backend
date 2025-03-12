@@ -29,7 +29,7 @@ export class CalendarsController {
 
   @Get('/user/:userId')
   @UseGuards(JwtAuthGuard)
-  async findCalendarBySlug(
+  async getCalendarsForUser(
     @Param('userId') userIdUrl: string,
     @CurrentUser('id') userId: string
   ) {
@@ -37,5 +37,14 @@ export class CalendarsController {
       return this.calendarsService.getPublicCalendarsByUserId(userIdUrl);
     }
     return this.calendarsService.getOwnCalendars(userId);
+  }
+
+  @Get('/:id')
+  @UseGuards(JwtAuthGuard)
+  async getCalendarById(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string
+  ) {
+    return this.calendarsService.getCalendarById(id, userId);
   }
 }

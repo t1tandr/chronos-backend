@@ -149,7 +149,27 @@ export class CalendarsService {
     return calendar;
   }
 
-  async getCalendarById(id: string) {
-    return this.prisma.calendar.findUnique({ where: { id } });
+  async getCalendarById(id: string, userId: string) {
+    const publicCalendar = await this.prisma.calendar.findFirst({
+      where: {
+        id,
+        isPublic: true
+      }
+    });
+    if (publicCalendar) {
+      return publicCalendar;
+    } else {
+      const member = await this.prisma.calendarMember.findFirst({
+        where: {
+          calendarId: id,
+          userId
+        }
+      });
+      if (!member) {
+        throw new Error('Not a member of this calendar');
+      } else {
+        return this.prisma.calendar.findUnique({ where: { id } });
+      }
+    }
   }
 }

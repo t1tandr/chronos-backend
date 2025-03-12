@@ -50,7 +50,7 @@ export class InvitesController {
   @UseGuards(JwtAuthGuard)
   async getInvitesForCalendar(
     @Param('calendarId') calendarId: string,
-    userId: string
+    @CurrentUser('id') userId: string
   ) {
     return this.invitesService.getInvitesForCalendar(calendarId, userId);
   }
