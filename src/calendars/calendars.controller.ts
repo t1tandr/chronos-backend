@@ -17,6 +17,18 @@ export class CalendarsController {
     return this.calendarsService.createCalendar(userId, dto);
   }
 
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  async getCalendars(@CurrentUser('id') userId: string) {
+    return this.calendarsService.getOwnCalendars(userId);
+  }
+
+  @Get('/participants')
+  @UseGuards(JwtAuthGuard)
+  async getParticipants(@CurrentUser('id') userId: string) {
+    return this.calendarsService.getParticipantCalendar(userId);
+  }
+
   @Post('/:id/update')
   @UseGuards(JwtAuthGuard)
   async updateCalendar(
@@ -25,6 +37,15 @@ export class CalendarsController {
     @CurrentUser('id') userId: string
   ) {
     return this.calendarsService.updateCalendar(userId, slug, dto);
+  }
+
+  @Get('/:id/events')
+  @UseGuards(JwtAuthGuard)
+  async getCalendarEvents(
+    @Param('id') calendarId: string,
+    @CurrentUser('id') userId: string
+  ) {
+    return this.calendarsService.getCalendarEvents(calendarId, userId);
   }
 
   @Get('/user/:userId')

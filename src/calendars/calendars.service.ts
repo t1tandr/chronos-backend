@@ -1,5 +1,9 @@
 /* eslint-disable prefer-const */
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException
+} from '@nestjs/common';
 import { CreateCalendarDto } from './dto/create-calendar.dto';
 import { PrismaService } from 'src/prisma.service';
 import slugify from 'slugify';
@@ -86,6 +90,66 @@ export class CalendarsService {
   async getOwnCalendars(userId: string) {
     return this.prisma.calendar.findMany({
       where: { ownerId: userId }
+    });
+  }
+
+  async getCalendarEvents(calendarId: string, userId: string) {
+    const calendar = await this.prisma.calendar.findUnique({
+      where: { id: calendarId },
+      include: {
+        members: {
+          where: { userId }
+        }
+      }
+    });
+
+    if (!calendar) {
+      throw new NotFoundException('Calendar not found');
+    }
+
+    // Check if user has access
+    if (
+      !calendar.isPublic &&
+      calendar.ownerId !== userId &&
+      !calendar.members.length
+    ) {
+      throw new ForbiddenException('You do not have access to this calendar');
+    }
+
+    const events = await this.prisma.event.findMany({
+      where: {
+        calendarId
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        date: true,
+        duration: true,
+        category: true,
+        color: true,
+        creator: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      },
+      orderBy: {
+        date: 'asc'
+      }
+    });
+
+    return events;
+  }
+
+  async getParticipantCalendar(userId: string) {
+    return this.prisma.calendarMember.findMany({
+      where: {
+        userId,
+        role: { in: ['EDITOR', 'VIEWER'] }
+      },
+      include: { calendar: true, user: true }
     });
   }
 

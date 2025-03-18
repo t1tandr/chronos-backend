@@ -44,18 +44,26 @@ export class UserService {
   }
 
   async findUserWithCalendars(id: string) {
-    const user = this.prisma.user.findUnique({
+    const data = await this.prisma.user.findUnique({
       where: { id },
       include: {
         calendars: true
       }
     });
 
-    if (!user) {
+    if (!data) {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    return {
+      user: {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        country: data.country
+      },
+      calendars: data.calendars
+    };
   }
 
   async updateUser(id: string, dto: UpdateUserDto) {

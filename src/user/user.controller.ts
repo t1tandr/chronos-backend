@@ -19,9 +19,9 @@ export class UserController {
     return await this.userService.findById(id);
   }
 
-  @Get(':id/calendars')
-  async getUserWithCalendars(@Param('id') id: string) {
-    return await this.userService.findUserWithCalendars(id);
+  @Get('/calendars/:id')
+  async getUserWithCalendars(@Param('id') userId: string) {
+    return await this.userService.findUserWithCalendars(userId);
   }
 
   @Post(':id')

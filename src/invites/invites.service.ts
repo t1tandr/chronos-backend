@@ -67,7 +67,8 @@ export class InvitesService {
     await this.prisma.calendarMember.create({
       data: {
         calendarId: invite.calendarId,
-        userId
+        userId,
+        role: 'VIEWER'
       }
     });
 

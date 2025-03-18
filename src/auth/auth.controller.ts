@@ -21,7 +21,7 @@ export class AuthController {
   ) {}
 
   @HttpCode(200)
-  @Post('register')
+  @Post('registration')
   async registerUser(
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
