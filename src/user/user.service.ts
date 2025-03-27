@@ -79,11 +79,16 @@ export class UserService {
     });
   }
 
-  async getCountryByIP(ip: string): Promise<string | null> {
+  async getCountryByIP(ip: string): Promise<string> {
     try {
       const cleanIP = ip.replace('::ffff:', '');
 
-      if (cleanIP === '127.0.0.1' || cleanIP === 'localhost') {
+      if (
+        cleanIP === '127.0.0.1' ||
+        cleanIP === 'localhost' ||
+        cleanIP === '::1'
+      ) {
+        console.log('Local development detected, using default country: UA');
         return 'UA';
       }
 
@@ -95,13 +100,15 @@ export class UserService {
           'IP lookup error:',
           response.data.reason || 'Unknown error'
         );
-        return null;
+        return 'UA';
       }
 
-      return response.data?.country_code || null;
+      const countryCode = response.data?.country_code || 'UA';
+      console.log(`Country code detected: ${countryCode}`);
+      return countryCode;
     } catch (e) {
       console.log('Error getting country for IP:', ip, e?.message);
-      return null;
+      return 'UA';
     }
   }
 }

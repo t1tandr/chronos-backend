@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { UserService } from 'src/user/user.service';
 import { CreateInviteDto } from './dto/create-invite.dto';
@@ -13,11 +13,11 @@ export class InvitesService {
     @InjectQueue('emailQueue') private emailQueue: Queue
   ) {}
 
-  async createInvite(dto: CreateInviteDto) {
-    const { email, calendarId } = dto;
+  async createInvite(dto: CreateInviteDto, calendarId: string) {
+    const { email } = dto;
     const user = await this.userService.findByEmail(email);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     const existing = await this.prisma.invite.findFirst({
@@ -39,7 +39,7 @@ export class InvitesService {
       }
     });
 
-    const link = `${process.env.FRONTEND_URL}/invites/`;
+    const link = `${process.env.FRONTEND_URL}/`;
 
     await this.emailQueue.add('sendEmail', {
       to: email,
@@ -95,6 +95,20 @@ export class InvitesService {
       where: {
         userId,
         status: 'PENDING'
+      },
+      include: {
+        calendar: {
+          select: {
+            id: true,
+            name: true,
+            owner: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
       }
     });
   }
@@ -114,6 +128,7 @@ export class InvitesService {
         userId
       }
     });
+
     if (!member) {
       throw new Error('You are not a member of this calendar');
     }
@@ -123,12 +138,26 @@ export class InvitesService {
         'You do not have permission to view invites for this calendar'
       );
     }
+
     return this.prisma.invite.findMany({
       where: {
-        calendarId
+        calendarId,
+        status: 'PENDING'
       },
       include: {
-        User: { select: { id: true, name: true } }
+        User: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        },
+        calendar: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
     });
   }

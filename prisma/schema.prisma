@@ -52,6 +52,7 @@ model CalendarMember {
   calendar   Calendar @relation(fields: [calendarId], references: [id])
   role       Role     @default(VIEWER)
 
+  @@unique([userId, calendarId])
   @@map("calendar_members")
 }
 
@@ -59,6 +60,7 @@ enum Role {
   OWNER
   EDITOR
   VIEWER
+  SELF_EDITOR
 }
 
 model Event {

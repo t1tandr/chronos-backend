@@ -16,10 +16,11 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 export class InvitesController {
   constructor(private invitesService: InvitesService) {}
 
-  @Post()
+  @Post(':id/create')
   @UseGuards(JwtAuthGuard)
-  async createInvite(@Body() dto: CreateInviteDto) {
-    return this.invitesService.createInvite(dto);
+  async createInvite(@Body() dto: CreateInviteDto, @Param('id') id: string) {
+    console.log('object');
+    return this.invitesService.createInvite(dto, id);
   }
 
   @Post(':id/accept')
@@ -40,7 +41,7 @@ export class InvitesController {
     return this.invitesService.rejectInvite(id, userId);
   }
 
-  @Get('user/:userId')
+  @Get('user/')
   @UseGuards(JwtAuthGuard)
   async getInvitesForUser(@CurrentUser('id') userId: string) {
     return this.invitesService.getInvitesForUser(userId);

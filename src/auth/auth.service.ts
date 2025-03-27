@@ -82,29 +82,48 @@ export class AuthService {
       }
     });
 
-    if (!dto.country) {
-      dto.country = await this.userService.getCountryByIP(req.ip);
-    }
+    // Get country code
+    const countryCode =
+      dto.country || (await this.userService.getCountryByIP(req.ip));
+    console.log('Creating calendar for country:', countryCode);
 
-    const holidays = await this.calendarService.getHolidaysWithGoogleCalendar(
-      dto.country,
-      new Date().getFullYear()
-    );
-
-    const calendar = await this.calendarService.createCalendar(user.id, {
-      name: 'Personal',
-      color: '#000000'
-    });
-
-    for (const holiday of holidays) {
-      await this.eventService.createEvent(user.id, {
-        name: holiday.summary,
-        date: holiday.start.dateTime
-          ? new Date(holiday.start.dateTime)
-          : new Date(holiday.start.date + 'T00:00:00'),
-        duration: 24,
-        calendarId: calendar.id
+    try {
+      const calendar = await this.calendarService.createCalendar(user.id, {
+        name: 'Personal Calendar',
+        description: 'Your personal calendar with holidays',
+        color: '#3788d8',
+        isPublic: false
       });
+
+      const currentYear = new Date().getFullYear();
+      const holidays = await this.calendarService.getHolidaysWithGoogleCalendar(
+        countryCode,
+        currentYear
+      );
+
+      console.log(`Found ${holidays.length} holidays for ${countryCode}`);
+
+      for (const holiday of holidays) {
+        try {
+          const startDate = holiday.start.dateTime
+            ? new Date(holiday.start.dateTime)
+            : new Date(`${holiday.start.date}T00:00:00`);
+
+          await this.eventService.createEvent(user.id, {
+            name: holiday.summary,
+            description: holiday.description || '',
+            date: startDate,
+            duration: 1440,
+            calendarId: calendar.id,
+            color: '#ff4444',
+            category: 'REMINDER'
+          });
+        } catch (error) {
+          console.error('Error creating holiday event:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error setting up calendar:', error);
     }
 
     return {

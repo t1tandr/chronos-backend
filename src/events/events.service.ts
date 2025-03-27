@@ -56,14 +56,36 @@ export class EventsService {
 
   async updateEvent(userId: string, eventId: string, dto: UpdateEventDto) {
     const event = await this.prisma.event.findUnique({
-      where: { id: eventId }
+      where: { id: eventId },
+      include: {
+        calendar: {
+          include: { members: true }
+        }
+      }
     });
 
     if (!event) {
       throw new NotFoundException('Event not found');
     }
 
-    await this.checkUserPermission(userId, event.calendarId);
+    const member = event.calendar.members.find((m) => m.userId === userId);
+    const isSelfEditor = member?.role === Role.SELF_EDITOR;
+    const isEventCreator = event.creatorId === userId;
+
+    if (isSelfEditor && !isEventCreator) {
+      throw new ForbiddenException('You can only edit your own events');
+    }
+
+    if (
+      !member ||
+      (member.role !== 'EDITOR' &&
+        !isSelfEditor &&
+        event.calendar.ownerId !== userId)
+    ) {
+      throw new ForbiddenException(
+        'You do not have permission to edit this event'
+      );
+    }
 
     return this.prisma.event.update({
       where: { id: eventId },
@@ -99,7 +121,11 @@ export class EventsService {
 
   private async checkUserPermission(userId: string, calendarId: string) {
     const membership = await this.prisma.calendarMember.findFirst({
-      where: { calendarId, userId, role: { in: [Role.OWNER, Role.EDITOR] } }
+      where: {
+        calendarId,
+        userId,
+        role: { in: [Role.OWNER, Role.EDITOR, Role.SELF_EDITOR] }
+      }
     });
 
     if (!membership) {
