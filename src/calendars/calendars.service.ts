@@ -240,7 +240,6 @@ export class CalendarsService {
       throw new NotFoundException('Calendar not found');
     }
 
-    // Check if user has access
     if (
       !calendar.isPublic &&
       calendar.ownerId !== userId &&
@@ -272,6 +271,7 @@ export class CalendarsService {
         date: 'asc'
       }
     });
+    console.log(events);
 
     return events;
   }
